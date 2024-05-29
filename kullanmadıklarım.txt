@@ -1,0 +1,459 @@
+def place_detail(request, place_id):
+    place = get_object_or_404(Destination, id=place_id)
+    reviews = place.reviews.order_by('-created_at')
+
+    if request.method == 'POST':
+        form = ReviewForm(request.POST, request.FILES)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.place = place
+            review.save()
+            return redirect('place_detail', place_id=place_id)
+    else:
+        form = ReviewForm()
+
+    return render(request, 'place_detail.html', {'place': place, 'reviews': reviews, 'form': form})
+
+
+def place_detail(request, place_id):
+    place = get_object_or_404(Destination, id=place_id)
+    reviews = place.reviews.order_by('-created_at')
+
+    if request.method == 'POST':
+        if request.user.is_authenticated:
+            form = ReviewForm(request.POST, request.FILES)
+            if form.is_valid():
+                review = form.save(commit=False)
+                review.place = place
+                review.user = request.user  # Associate review with current user
+                review.save()
+                messages.success(request, 'Review submitted successfully!')
+                return redirect('place_detail', place_id=place_id)
+        else:
+            messages.error(request, 'You must be logged in to post a review.')
+            return redirect('login')
+
+    else:
+        form = ReviewForm()
+
+    return render(request, 'place_detail.html', {'place': place, 'reviews': reviews, 'form': form})
+
+
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HubCompass</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <a href="{% url 'home' %}">HubCompass</a>
+        </div>
+        <div class="search-bar">
+            <form method="get" action="{% url 'search' %}">
+                <input type="search" name="query" placeholder="Search...">
+                <button type="submit">Search</button>
+            </form>
+        </div>
+        <div class="navigation">
+            {% if user.is_authenticated %}
+            <a href="{% url 'profile' %}">Profile</a>
+            <a href="{% url 'logout' %}">Log Out</a>
+            {% else %}
+            <a href="{% url 'login' %}">LogIn</a>
+            {% endif %}
+            <a href="{% url 'write_review' %}">Write a Review</a>
+            <a href="{% url 'add-place' %}">Add a Place</a>
+        </div>
+    </header>
+
+    {% if messages %}
+        {% for message in messages %}
+            {{ message }}
+        {% endfor %}
+    {% endif %}
+
+    <main>
+        {% block content %}
+        <!-- Placeholder for page-specific content -->
+        {% endblock %}
+    </main>
+    <footer>
+        <p>© 2024 HubCompass. All rights reserved.</p>
+    </footer>
+    <script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>
+
+<!--
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+<link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
+-->
+
+{% extends 'base.html' %}
+
+
+{% block content %}
+<div class="container">
+    <section id="popular-places">
+        <h2>Popular Places</h2>
+        <div class="places-grid">
+            {% for place in popular_places %}
+            <div class="place-card">
+                <img src="{{ place.image.url }}" alt="{{ place.name }}">
+                <h3>{{ place.name }}</h3>
+                <p>{{ place.description }}</p>
+            </div>
+            {% empty %}
+                <p>No popular places to show.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section id="recent-places">
+        <h2>Recently Added Places</h2>
+        <div class="places-grid">
+            {% for place in recent_places %}
+            <div class="place-card" style="transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #ddd; background-color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.2)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 5px rgba(0,0,0,0.1)';">
+                <a href="{% url 'place_detail' place.id %}" style="color: inherit; text-decoration: none;">
+                    <h3>{{ place.name }}</h3>
+                    <p>{{ place.description }}</p>
+                </a>
+            </div>
+            {% empty %}
+                <p>No recent places to show.</p>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% extends 'base.html' %}
+
+{% load filters %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-body">
+                    <h1 class="card-title">{{ place.name }}</h1>
+                    <p class="card-text">{{ place.description }}</p>
+                    <p><strong>Location:</strong> {{ place.location }}</p>
+                    <p><strong>Average Rating:</strong>
+                        <span class="rating">
+                            {% generate_range 5 as range %}
+                            {% for i in range %}
+                                <i class="fas fa-star {% if place.average_rating >= i %}text-warning{% else %}text-muted{% endif %}"></i>
+                            {% endfor %}
+                            ({{ place.number_of_reviews }} reviews)
+                        </span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <h2>Reviews</h2>
+                {% if reviews %}
+                    <ul class="list-group">
+                        {% for review in reviews %}
+                            <li class="list-group-item">
+                                <h4>{{ review.title }}</h4>
+                                <span class="rating">
+                                    {% for i in range %}
+                                        <i class="fas fa-star {% if review.rating >= i %}text-warning{% else %}text-muted{% endif %}"></i>
+                                    {% endfor %}
+                                </span>
+                                <p>{{ review.review }}</p>
+                                {% if review.image %}
+                                    <img src="{{ review.image.url }}" alt="Review Image" class="img-fluid rounded mt-2 mb-2">
+                                {% endif %}
+                                <p><strong>Pros:</strong> {{ review.pros }}</p>
+                                <p><strong>Cons:</strong> {{ review.cons }}</p>
+                                <p class="text-muted">Reviewed by: {{ review.user.username }} on {{ review.created_at }}</p>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No reviews yet. Be the first to review!</p>
+                {% endif %}
+            </div>
+
+            <div class="mt-4">
+                <h2>Add a Review</h2>
+                {% if user.is_authenticated %}
+                    <form method="post" enctype="multipart/form-data" class="border p-4 rounded">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="id_title">Title</label>
+                            {{ form.title }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_rating">Rating</label>
+                            {{ form.rating }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_review">Review</label>
+                            {{ form.review }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_pros">Pros</label>
+                            {{ form.pros }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_cons">Cons</label>
+                            {{ form.cons }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_image">Image</label>
+                            {{ form.image }}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit Review</button>
+                    </form>
+                {% else %}
+                    <p>You must be <a href="{% url 'login' %}">logged in</a> to post a review.</p>
+                {% endif %}
+            </div>
+
+            <div class="mt-4">
+                <a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+def place_detail(request, place_id):
+    place = get_object_or_404(Destination, id=place_id)
+    reviews = place.reviews.order_by('-created_at')
+
+    if request.method == 'POST':
+        if request.user.is_authenticated:
+            form = ReviewForm(request.POST, request.FILES)
+            if form.is_valid():
+                review = form.save(commit=False)
+                review.place = place
+                review.user = request.user  # Associate review with current user
+                review.save()
+                place.update_rating()  # Update the place's average rating
+                messages.success(request, 'Review submitted successfully!')
+                return redirect('place_detail', place_id=place_id)
+        else:
+            messages.error(request, 'You must be logged in to post a review.')
+            return redirect('login')
+    else:
+        form = ReviewForm()
+
+    return render(request, 'place_detail.html', {'place': place, 'reviews': reviews, 'form': form})
+
+{% extends 'base.html' %}
+
+{% load filters custom_tags %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-body">
+                    <h1 class="card-title">{{ place.name }}</h1>
+                    <p class="card-text">{{ place.description }}</p>
+                    <p><strong>Location:</strong> {{ place.location }}</p>
+                    <p><strong>Average Rating:</strong>
+                        <span class="rating">
+                            {% generate_range 5 as range %}
+                            {% for i in range %}
+                                <i class="fas fa-star {% if place.average_rating >= i %}text-warning{% else %}text-muted{% endif %}"></i>
+                            {% endfor %}
+                            ({{ place.number_of_reviews }} reviews)
+                        </span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <h2>Reviews</h2>
+                {% if reviews %}
+                    <ul class="list-group">
+                        {% for review in reviews %}
+                            <li class="list-group-item">
+                                <h4>{{ review.title }}</h4>
+                                <span class="rating">
+                                    {% for i in range %}
+                                        <i class="fas fa-star {% if review.rating >= i %}text-warning{% else %}text-muted{% endif %}"></i>
+                                    {% endfor %}
+                                </span>
+                                <p>{{ review.review }}</p>
+                                {% if review.image %}
+                                    <img src="{{ review.image.url }}" alt="Review Image" class="img-fluid rounded mt-2 mb-2">
+                                {% endif %}
+                                <p><strong>Pros:</strong> {{ review.pros }}</p>
+                                <p><strong>Cons:</strong> {{ review.cons }}</p>
+                                <p class="text-muted">Reviewed by: {{ review.user.username }} on {{ review.created_at }}</p>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No reviews yet. Be the first to review!</p>
+                {% endif %}
+            </div>
+
+            <div class="mt-4">
+                <h2>Add a Review</h2>
+                {% if user.is_authenticated %}
+                    <form method="post" enctype="multipart/form-data" class="border p-4 rounded">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="id_title">Title</label>
+                            {{ form.title }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_rating">Rating</label>
+                            <div class="star-rating">
+                                {% for i in range %}
+                                    <input type="radio" name="rating" id="rating-{{ 6-i }}" value="{{ 6-i }}">
+                                    <label for="rating-{{ 6-i }}"><i class="fas fa-star"></i></label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="id_review">Review</label>
+                            {{ form.review }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_pros">Pros</label>
+                            {{ form.pros }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_cons">Cons</label>
+                            {{ form.cons }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_image">Image</label>
+                            {{ form.image }}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit Review</button>
+                    </form>
+                {% else %}
+                    <p>You must be <a href="{% url 'login' %}">logged in</a> to post a review.</p>
+                {% endif %}
+            </div>
+
+            <div class="mt-4">
+                <a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% extends 'base.html' %}
+
+{% load filters %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-body">
+                    <h1 class="card-title">{{ place.name }}</h1>
+                    <p class="card-text">{{ place.description }}</p>
+                    <p><strong>Location:</strong> {{ place.location }}</p>
+                    <p><strong>Average Rating:</strong>
+                        <span class="rating">
+                            {% generate_range 5 as range %}
+                            {% for i in range %}
+                                <i class="fas fa-star {% if place.average_rating >= i %}text-warning{% else %}text-muted{% endif %}"></i>
+                            {% endfor %}
+                            ({{ place.number_of_reviews }} reviews)
+                        </span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <h2>Reviews</h2>
+                {% if reviews %}
+                    <ul class="list-group">
+                        {% for review in reviews %}
+                            <li class="list-group-item">
+                                <h4>{{ review.title }}</h4>
+                                <span class="rating">
+                                    {% for i in range %}
+                                        <i class="fas fa-star {% if review.rating >= i %}text-warning{% else %}text-muted{% endif %}"></i>
+                                    {% endfor %}
+                                </span>
+                                <p>{{ review.review }}</p>
+                                {% if review.image %}
+                                    <img src="{{ review.image.url }}" alt="Review Image" class="img-fluid rounded mt-2 mb-2">
+                                {% endif %}
+                                <p><strong>Pros:</strong> {{ review.pros }}</p>
+                                <p><strong>Cons:</strong> {{ review.cons }}</p>
+                                <p class="text-muted">Reviewed by: {{ review.user.username }} on {{ review.created_at }}</p>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No reviews yet. Be the first to review!</p>
+                {% endif %}
+            </div>
+
+            <div class="mt-4">
+                <h2>Add a Review</h2>
+                {% if user.is_authenticated %}
+                    <form method="post" enctype="multipart/form-data" class="border p-4 rounded">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="id_title">Title</label>
+                            {{ form.title }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_rating">Rating</label>
+                            <div class="star-rating">
+                                {% for i in range %}
+                                    <input type="radio" name="rating" id="rating-{{ 6|subtract:i }}" value="{{ 6|subtract:i }}" {% if form.instance.rating == 6|subtract:i %}checked{% endif %}>
+                                    <label for="rating-{{ 6|subtract:i }}"><i class="fas fa-star"></i></label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="id_review">Review</label>
+                            {{ form.review }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_pros">Pros</label>
+                            {{ form.pros }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_cons">Cons</label>
+                            {{ form.cons }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_image">Image</label>
+                            {{ form.image }}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit Review</button>
+                    </form>
+                {% else %}
+                    <p>You must be <a href="{% url 'login' %}">logged in</a> to post a review.</p>
+                {% endif %}
+            </div>
+
+            <div class="mt-4">
+                <a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

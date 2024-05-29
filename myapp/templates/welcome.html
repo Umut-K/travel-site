@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% load filters %}
+
+{% block content %}
+
+<div class="container mt-4">
+    <section id="recent-places" class="mt-5">
+        <h2 class="mb-4 text-center">Recently Added Places</h2>
+        <div class="slideshow-container">
+            {% for place in recent_places %}
+            <div class="mySlides">
+                <div class="card h-100 mx-auto" style="max-width: 600px;">
+                    {% if place.image %}
+                    <img src="{{ place.image.url }}" class="card-img-top" alt="{{ place.name }}" style="height: 400px; object-fit: cover;">
+                    {% endif %}
+                    <div class="card-body text-center">
+                        <h5 class="card-title">{{ place.name }}</h5>
+                        <p class="card-text">{{ place.description }}</p>
+                        <div class="rating">
+                            {% generate_range 5 as range %}
+                            {% for i in range %}
+                                <i class="fas fa-star {% if place.average_rating >= i %}text-warning{% else %}text-muted{% endif %}"></i>
+                            {% endfor %}
+                            ({{ place.number_of_reviews }} reviews)
+                        </div>
+                        <a href="{% url 'place_detail' place.id %}" class="btn btn-primary mt-2">View Details</a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+                <p>No recent places to show.</p>
+            {% endfor %}
+
+            <!-- Next and previous buttons -->
+            <a class="prev" onclick="plusSlides(-1)">&#10094;</a>
+            <a class="next" onclick="plusSlides(1)">&#10095;</a>
+        </div>
+        <br>
+
+        <!-- The dots/circles -->
+        <div style="text-align:center">
+            {% for place in recent_places %}
+            <span class="dot" onclick="currentSlide({{ forloop.counter }})"></span>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section id="popular-places">
+        <h2 class="mb-4 text-center">Popular Places</h2>
+        <div class="row">
+            {% for place in popular_places %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    {% if place.image %}
+                    <img src="{{ place.image.url }}" class="card-img-top" alt="{{ place.name }}">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ place.name }}</h5>
+                        <p class="card-text">{{ place.description }}</p>
+                        <p class="text-muted">#{{ forloop.counter }} in popular places</p>
+                        <div class="rating">
+                            {% generate_range 5 as range %}
+                            {% for i in range %}
+                                <i class="fas fa-star {% if place.average_rating >= i %}text-warning{% else %}text-muted{% endif %}"></i>
+                            {% endfor %}
+                            ({{ place.number_of_reviews }} reviews)
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+                <p>No popular places to show.</p>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+
+<script>
+    let slideIndex = 1;
+    showSlides(slideIndex);
+
+    function plusSlides(n) {
+        showSlides(slideIndex += n);
+    }
+
+    function currentSlide(n) {
+        showSlides(slideIndex = n);
+    }
+
+    function showSlides(n) {
+        let i;
+        let slides = document.getElementsByClassName("mySlides");
+        let dots = document.getElementsByClassName("dot");
+        if (n > slides.length) {slideIndex = 1}
+        if (n < 1) {slideIndex = slides.length}
+        for (i = 0; i < slides.length; i++) {
+            slides[i].classList.remove("active");  // Remove the active class from all slides
+        }
+        for (i = 0; i < dots.length; i++) {
+            dots[i].className = dots[i].className.replace(" active-dot", "");
+        }
+        slides[slideIndex-1].classList.add("active");  // Add the active class to the current slide
+        dots[slideIndex-1].className += " active-dot";
+    }
+
+    setInterval(function() {
+        plusSlides(1);
+    }, 4000); // Change image every 4 seconds
+</script>
+
+<style>
+    .slideshow-container {
+        position: relative;
+        max-width: 1000px;
+        margin: auto;
+        overflow: hidden;
+    }
+
+    .mySlides {
+        display: none;
+        position: relative;
+        text-align: center;
+        width: 100%;
+        opacity: 0;
+        transition: opacity 1s ease-in-out;  /* Smooth transition */
+    }
+
+    .mySlides.active {
+        display: block;
+        opacity: 1;
+    }
+
+    .prev, .next {
+        cursor: pointer;
+        position: absolute;
+        top: 50%;
+        width: auto;
+        padding: 16px;
+        margin-top: -22px;
+        color: white;
+        font-weight: bold;
+        font-size: 18px;
+        transition: 0.6s ease;
+        border-radius: 0 3px 3px 0;
+        user-select: none;
+        background-color: rgba(0,0,0,0.5); /* Ensure the navigation buttons are visible */
+    }
+
+    .next {
+        right: 0;
+        border-radius: 3px 0 0 3px;
+    }
+
+    .prev:hover, .next:hover {
+        background-color: rgba(0,0,0,0.8);
+    }
+
+    .dot {
+        cursor: pointer;
+        height: 15px;
+        width: 15px;
+        margin: 0 2px;
+        background-color: #bbb;
+        border-radius: 50%;
+        display: inline-block;
+        transition: background-color 0.6s ease;
+    }
+
+    .active-dot, .dot:hover {
+        background-color: #717171;
+    }
+</style>
+{% endblock %}

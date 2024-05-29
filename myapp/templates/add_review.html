@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>Write a Review for {{ destination.name }}</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Submit Review</button>
+    </form>
+    <a href="{% url 'place_detail' destination.pk %}">Back to {{ destination.name }}</a>
+</div>
+{% endblock %}

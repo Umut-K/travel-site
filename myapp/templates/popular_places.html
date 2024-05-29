@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>Popular Places</h1>
+  <ul>
+    {% for place in popular_places %}
+      <li>
+        <a href="{% url 'place_detail' place.id %}">{{ place.name }}</a> - {{ place.location }}
+        <p>{{ place.description }}</p>
+        <p>Search Count: {{ place.search_count }}</p>
+      </li>
+    {% endfor %}
+  </ul>
+{% endblock %}

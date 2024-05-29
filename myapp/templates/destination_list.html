@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>Destinations</h1>
+  <ul>
+    {% for destination in destinations %}
+      <li><a href="{% url 'place_detail' destination.pk %}">{{ destination.name }}</a> - {{ destination.location }} ({{ destination.average_rating }} stars)</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% load filters %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Search</h1>
+    <form method="get" action="{% url 'search' %}" class="mb-4">
+        <div class="input-group">
+            {{ form.query|add_class:"form-control" }}
+            <button type="submit" class="btn btn-outline-primary">Search</button>
+        </div>
+    </form>
+
+    {% if query %}
+        <h2>Results for "{{ query }}"</h2>
+        {% if results %}
+            <div class="row">
+                {% for place in results %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="row g-0">
+                            {% if place.image %}
+                            <div class="col-md-4">
+                                <img src="{{ place.image.url }}" class="img-fluid rounded-start" alt="{{ place.name }}" style="height: 100%; object-fit: cover;">
+                            </div>
+                            {% endif %}
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <a href="{% url 'place_detail' place.id %}" class="text-decoration-none">{{ place.name }}</a>
+                                    </h5>
+                                    <p class="card-text">{{ place.location }}</p>
+                                    <p class="card-text">{{ place.description }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No results found for "{{ query }}".</p>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}
